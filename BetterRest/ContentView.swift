@@ -12,7 +12,6 @@ struct ContentView: View {
     @State private var wakeUp = defaultWakeTime
     @State private var sleepAmount = 8.0
     @State private var coffeeAmount = 1
-    
     @State private var alertTitle = "Error"
     @State private var alertMessage = "Sorry, there was a problem calculating your bedtime."
     @State private var showingAlert = false
@@ -22,6 +21,10 @@ struct ContentView: View {
         components.hour = 7
         components.minute = 0
         return Calendar.current.date(from: components) ?? Date.now
+    }
+    
+    private var totalCoffeeAmount: Int {
+        return coffeeAmount + 1
     }
     
     var body: some View {
@@ -39,7 +42,11 @@ struct ContentView: View {
                 }
 
                 Section(header: Text("Daily coffee intake")) {
-                    Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount)
+                    Picker(totalCoffeeAmount == 1 ? "1 cup" : "\(totalCoffeeAmount) cups", selection: $coffeeAmount) {
+                        ForEach(coffeeAmount..<11, content: {number in
+                               Text("\(number)")
+                            })
+                    }
                 }
                 
             }
@@ -66,7 +73,7 @@ struct ContentView: View {
             let hour = (components.hour ?? 0) * 60 * 60
             let minute = (components.minute ?? 0) * 60
             
-            let prediction = try model.prediction(wake: Double(hour + minute), estimatedSleep: sleepAmount, coffee: Double(coffeeAmount))
+            let prediction = try model.prediction(wake: Double(hour + minute), estimatedSleep: sleepAmount, coffee: Double(totalCoffeeAmount))
             
             let sleepTime = wakeUp - prediction.actualSleep
             
