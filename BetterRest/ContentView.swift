@@ -23,12 +23,34 @@ struct ContentView: View {
         return Calendar.current.date(from: components) ?? Date.now
     }
     
+    private var bedTime: String {
+        do {
+            let config = MLModelConfiguration()
+            let model = try SleepCalculator(configuration: config)
+            
+            let components = Calendar.current.dateComponents([.hour, .minute], from: wakeUp)
+            
+            let hour = (components.hour ?? 0) * 60 * 60
+            let minute = (components.minute ?? 0) * 60
+            
+            let prediction = try model.prediction(wake: Double(hour + minute), estimatedSleep: sleepAmount, coffee: Double(totalCoffeeAmount))
+            
+            let sleepTime = wakeUp - prediction.actualSleep
+            
+            return sleepTime.formatted(date: .omitted, time: .shortened)
+            
+        } catch {
+            return Date.now.formatted()
+        }
+    }
+    
     private var totalCoffeeAmount: Int {
         return coffeeAmount + 1
     }
     
     var body: some View {
         NavigationView {
+            VStack {
             Form {
                 Section(header: Text("When do you want to wake up?")) {
                     
@@ -50,41 +72,24 @@ struct ContentView: View {
                 }
                 
             }
-            .alert(alertTitle, isPresented: $showingAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 400, alignment: .top)
+                
+                Spacer()
+                
+                VStack(spacing: 2) {
+                    Text("Your ideal bedtime is…")
+                        .font(.subheadline)
+                    Text("\(bedTime)")
+                        .font(.largeTitle)
+                }
+                Spacer()
             }
             .navigationTitle("BetterRest")
-                    .toolbar {
-                        Button("Calculate", action: calculateBedTime)
-                    }
+            
         }
         
     }
     
-    func calculateBedTime() {
-        do {
-            let config = MLModelConfiguration()
-            let model = try SleepCalculator(configuration: config)
-            
-            let components = Calendar.current.dateComponents([.hour, .minute], from: wakeUp)
-            
-            let hour = (components.hour ?? 0) * 60 * 60
-            let minute = (components.minute ?? 0) * 60
-            
-            let prediction = try model.prediction(wake: Double(hour + minute), estimatedSleep: sleepAmount, coffee: Double(totalCoffeeAmount))
-            
-            let sleepTime = wakeUp - prediction.actualSleep
-            
-            alertTitle = "Your ideal bedtime is…"
-            alertMessage = sleepTime.formatted(date: .omitted, time: .shortened)
-            showingAlert = true
-            
-        } catch {
-            showingAlert = true
-        }
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {
